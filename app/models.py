@@ -4,9 +4,10 @@ from typing import Optional
 import sqlalchemy as sa
 import sqlalchemy.orm as so
 from app import db
+from flask_login import UserMixing
 
 
-class User(db.Model):
+class User(UserMixing, db.Model):
     """Database Model Table to store Particular Users of the app.
     Implements the `user` table to have the following;
     id - Integer
