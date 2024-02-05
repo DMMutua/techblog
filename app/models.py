@@ -1,11 +1,13 @@
+from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timezone
 from typing import Optional
 import sqlalchemy as sa
 import sqlalchemy.orm as so
-from app import db
+from app import db, login
+from flask_login import UserMixing
 
 
-class User(db.Model):
+class User(UserMixing, db.Model):
     """Database Model Table to store Particular Users of the app.
     Implements the `user` table to have the following;
     id - Integer
@@ -25,6 +27,16 @@ class User(db.Model):
 
     def __repr__(self):
         return '<user {}>'.format(self.username)
+    
+    def set_password(self, password: str):
+        """Generates a password hash to be stored in the User
+        table for a particular user"""
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password: str):
+        """Checks whether a password from user evaluates to the password_hash
+        associated with their id"""
+        return check_password_hash(self.password_hash, password)
 
 
 class Post(db.Model):
@@ -46,3 +58,9 @@ class Post(db.Model):
 
     def __repr__(self):
         return '<Post {}>'.format(self.body)
+    
+@login.user_loader
+def load_user(id):
+    """Loads a User to be tracked by a Flask's
+    User session"""
+    return db.session.get(User, int(id))
