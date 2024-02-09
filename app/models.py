@@ -5,6 +5,7 @@ import sqlalchemy as sa
 import sqlalchemy.orm as so
 from app import db, login
 from flask_login import UserMixin
+from hashlib import md5
 
 
 class User(UserMixin, db.Model):
@@ -37,6 +38,11 @@ class User(UserMixin, db.Model):
         """Checks whether a password from user evaluates to the password_hash
         associated with their id"""
         return check_password_hash(self.password_hash, password)
+    
+    def avatar(self, size):
+        """Fetches an Avatar to display as a User Profile Page"""
+        digest = md5(self.email.lower().encode('utf-8')).hexdigest()
+        return f'https://www.gravatar.com/avatar/{digest}?d=identicon&s={size}'
 
 
 class Post(db.Model):
