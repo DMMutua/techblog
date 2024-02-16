@@ -69,7 +69,34 @@ class User(UserMixin, db.Model):
         """Fetches an Avatar to display as a User Profile Page"""
         digest = md5(self.email.lower().encode('utf-8')).hexdigest()
         return f'https://www.gravatar.com/avatar/{digest}?d=identicon&s={size}'
+    
+    def follow(self, user):
+        """Allows a Unique User id to Follow another Unique User id"""
+        if not self.is_following(user):
+            self.following.add(user)
 
+    def unfollow(self, user):
+        """Allows a Unique User id to Unfollow another Unique User id"""
+        if self.is_following(user):
+            self.following.remove(user)
+    
+    def is_following(self, user):
+        """Checks whether a Unique User id is
+        following another Unique User id"""
+        query = self.following.select().where(User.id == user.id)
+        return db.session.scalar(query) is not None
+    
+    def followers_count(self):
+        """Returns the number of User ids that follow a unique User id"""
+        query = sa.select(sa.func.count()).select_from(
+            self.followers.select().subquery())
+        return db.session.scalar(query)
+    
+    def following_count(self):
+        """Returns the number of User ids that are following a Unique User id"""
+        query = sa.select(sa.func.count()).select_from(
+            self.following.select().subquery())
+        return db.session.scalar(query)
 
 class Post(db.Model):
     """Database Model Table for Blog Posts.
