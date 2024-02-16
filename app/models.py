@@ -97,6 +97,20 @@ class User(UserMixin, db.Model):
         query = sa.select(sa.func.count()).select_from(
             self.following.select().subquery())
         return db.session.scalar(query)
+    
+    def following_posts(self):
+        """Returns Posts written by Users the User id
+        associated with a User Follows
+        """
+        Author = so.aliased(User)
+        Follower = so.aliased(User)
+        return(
+            sa.select(Post)
+            .join(Post.author.of_type(Author))
+            .join(Author.followers.of_type(Follower))
+            .where(Follower.id == self.id)
+            .order_by(Post.timestamp.desc())
+        )
 
 class Post(db.Model):
     """Database Model Table for Blog Posts.
