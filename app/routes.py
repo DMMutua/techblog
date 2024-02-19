@@ -1,20 +1,26 @@
 from urllib.parse import urlsplit
 from datetime import datetime, timezone
 from flask import render_template, flash, redirect, url_for, request
-from app.forms import LoginForm, RegistrationForm, EditProfileForm, EmptyForm
+from app.forms import LoginForm, RegistrationForm, EditProfileForm, EmptyForm, PostForm
 from flask_login import current_user, login_user, logout_user, login_required
 import sqlalchemy as sa
 from app import app, db
-from app.models import User
+from app.models import User, Post
 
 
-@app.route('/')
-@app.route('/index')
+@app.route('/', methods=['GET', 'POST'])
+@app.route('/index', methods=['GET', 'POST'])
 @login_required
 def index():
     """Renders the Index/Home Template to the 
     Homepage API endpoint of the app"""
-    user = {'username':'Davy'}
+    form = PostForm()
+    if form.validate_on_submit():
+        post = Post(body=form.post.data, author=current_user)
+        db.session.add(post)
+        db.session.commit()
+        flash('Felicitations!, Your Musings are now Live')
+        return redirect(url_for('index'))
     posts = [
         {
             'author': {'username': 'ThyFather'},
@@ -25,7 +31,7 @@ def index():
             'body': 'James Cameron`s Avatar is the Ishh'
         }
     ]
-    return render_template('index.html', title='Home', posts=posts)
+    return render_template('index.html', title='Home Page', form=form, posts=posts)
 
 
 @app.route('/login', methods=['GET', 'POST'])

@@ -63,3 +63,10 @@ class EditProfileForm(FlaskForm):
 class EmptyForm(FlaskForm):
     """Empty form for following and unfollowing."""
     submit = SubmitField('Submit')
+
+
+class PostForm(FlaskForm):
+    """A Form for unique Users Submit Blogs"""
+    post = TextAreaField('Might as well Say Something...', validators=[
+        DataRequired(), Length(min=1, max=140)])
+    submit = SubmitField('Submit')
