@@ -8,6 +8,16 @@ from flask_login import UserMixin
 from hashlib import md5
 
 
+followers = sa.Table(
+    'followers',
+    db.metadata,
+    sa.Column('follower_id', sa.Integer, sa.ForeignKey('user.id'),
+              primary_key=True),
+    sa.Column('followed_id', sa.Integer, sa.ForeignKey('user.id'),
+              primary_key=True)
+)
+
+
 class User(UserMixin, db.Model):
     """Database Model Table to store Particular Users of the app.
     Implements the `user` table to have the following;
@@ -30,6 +40,17 @@ class User(UserMixin, db.Model):
 
     posts: so.WriteOnlyMapped['Post'] = so.relationship(
         back_populates='author')
+    
+    following: so.WriteOnlyMapped['User'] = so.relationship(
+        secondary=followers, primaryjoin=(followers.c.follower_id == id),
+        secondaryjoin=(followers.c.followed_id == id),
+        back_populates='followers')
+    
+    followers:so.WriteOnlyMapped['User'] = so.relationship(
+        secondary=followers, primaryjoin=(followers.c.followed_id == id),
+        secondaryjoin=(followers.c.follower_id == id),
+        back_populates='following')
+
 
     def __repr__(self):
         return '<user {}>'.format(self.username)
@@ -48,7 +69,52 @@ class User(UserMixin, db.Model):
         """Fetches an Avatar to display as a User Profile Page"""
         digest = md5(self.email.lower().encode('utf-8')).hexdigest()
         return f'https://www.gravatar.com/avatar/{digest}?d=identicon&s={size}'
+    
+    def follow(self, user):
+        """Allows a Unique User id to Follow another Unique User id"""
+        if not self.is_following(user):
+            self.following.add(user)
 
+    def unfollow(self, user):
+        """Allows a Unique User id to Unfollow another Unique User id"""
+        if self.is_following(user):
+            self.following.remove(user)
+    
+    def is_following(self, user):
+        """Checks whether a Unique User id is
+        following another Unique User id"""
+        query = self.following.select().where(User.id == user.id)
+        return db.session.scalar(query) is not None
+    
+    def followers_count(self):
+        """Returns the number of User ids that follow a unique User id"""
+        query = sa.select(sa.func.count()).select_from(
+            self.followers.select().subquery())
+        return db.session.scalar(query)
+    
+    def following_count(self):
+        """Returns the number of User ids that are following a Unique User id"""
+        query = sa.select(sa.func.count()).select_from(
+            self.following.select().subquery())
+        return db.session.scalar(query)
+    
+    def following_posts(self):
+        """Returns Posts written by Users the User id
+        associated with a User Follows
+        """
+        Author = so.aliased(User)
+        Follower = so.aliased(User)
+        return(
+            sa.select(Post)
+            .join(Post.author.of_type(Author))
+            .join(Author.followers.of_type(Follower), isouter=True)
+            .where(sa.or_(
+                Follower.id == self.id,
+                Author.id == self.id,
+            ))
+            .group_by(Post)
+            .order_by(Post.timestamp.desc())
+        )
 
 class Post(db.Model):
     """Database Model Table for Blog Posts.
