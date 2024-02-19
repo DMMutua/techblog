@@ -21,16 +21,7 @@ def index():
         db.session.commit()
         flash('Felicitations!, Your Musings are now Live')
         return redirect(url_for('index'))
-    posts = [
-        {
-            'author': {'username': 'ThyFather'},
-            'body': 'Beautiful day in Nairobii!'
-        },
-        {
-            'author': {'username': 'Florian'},
-            'body': 'James Cameron`s Avatar is the Ishh'
-        }
-    ]
+    posts = db.session.scalars(current_user.following_posts()).all()
     return render_template('index.html', title='Home Page', form=form, posts=posts)
 
 
