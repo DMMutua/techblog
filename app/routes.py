@@ -21,8 +21,12 @@ def index():
         db.session.commit()
         flash('Felicitations!, Your Musings are now Live')
         return redirect(url_for('index'))
-    posts = db.session.scalars(current_user.following_posts()).all()
-    return render_template('index.html', title='Home Page', form=form, posts=posts)
+    page = request.args.get('page', 1, type=int)
+    query = sa.select(Post).order_by(Post.timestamp.desc())
+    posts = db.paginate(query, page=page,
+                        per_page=app.config['POSTS_PER_PAGE'], error_out=False)
+    return render_template('index.html', title='Home Page', form=form,
+                           posts=posts.items)
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -131,6 +135,8 @@ def follow(username):
 @app.route('/explore')
 @login_required
 def explore():
+    page = request.args.get('page', 1, type=int)
     query = sa.select(Post).order_by(Post.timestamp.desc())
-    posts = db.session.scalars(query).all()
-    return render_template('index.html', title='Explore', posts=posts)
+    posts = db.paginate(query, page=page
+                        per_page=app.config['POSTS_PER_PAGE'], error_out=False)
+    return render_template('index.html', title='Explore', posts=posts.items)
